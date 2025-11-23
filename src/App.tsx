@@ -2,10 +2,11 @@ import { BrowserRouter, Routes, Route, Outlet } from 'react-router-dom';
 import TrackerView from './components/TrackerView';
 import AdminDashboard from './components/AdminDashboard';
 import NewOrderForm from './components/NewOrderForm';
+import OrderDetail from './components/OrderDetail';
 import BottomNavigation from './components/BottomNavigation';
+import Login from './components/Login'; // <--- IMPORTAR LOGIN
 import './App.css';
 
-// Layout component that includes the BottomNavigation
 const MainLayout = () => {
   return (
     <>
@@ -19,18 +20,21 @@ function App() {
   return (
     <BrowserRouter>
       <Routes>
-        {/* Public Route - Client Tracker */}
-        <Route path="/" element={<TrackerView />} />
+        {/* 1. La ruta raíz ahora es el Login */}
+        <Route path="/" element={<Login />} />
 
-        {/* Admin Routes - Wrapped in Layout for Navigation */}
+        {/* 2. Ruta para el cliente (Rastreador) */}
+        <Route path="/tracker" element={<TrackerView />} />
+
+        {/* 3. Rutas protegidas del Admin/Mecánico */}
         <Route element={<MainLayout />}>
           <Route path="/admin" element={<AdminDashboard />} />
           <Route path="/history" element={<div style={{ padding: 20 }}>Historial (Próximamente)</div>} />
           <Route path="/profile" element={<div style={{ padding: 20 }}>Perfil (Próximamente)</div>} />
         </Route>
 
-        {/* Full screen form (no bottom nav) */}
         <Route path="/admin/new" element={<NewOrderForm />} />
+        <Route path="/admin/orders/:id" element={<OrderDetail />} />
       </Routes>
     </BrowserRouter>
   );

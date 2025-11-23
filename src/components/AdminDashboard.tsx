@@ -67,7 +67,18 @@ const AdminDashboard: React.FC = () => {
                     <p style={{ color: '#666', fontSize: '14px' }}>No hay actividad reciente.</p>
                 ) : (
                     recentOrders.map((order) => (
-                        <div key={order.id} style={{ background: 'white', borderRadius: '12px', padding: '16px', marginBottom: '12px', boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }}>
+                        <div
+                            key={order.id}
+                            onClick={() => navigate(`/admin/orders/${order.id}`)}
+                            style={{
+                                background: 'white',
+                                borderRadius: '12px',
+                                padding: '16px',
+                                marginBottom: '12px',
+                                boxShadow: '0 2px 8px rgba(0,0,0,0.05)',
+                                cursor: 'pointer'
+                            }}
+                        >
                             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
                                 <span style={{ fontWeight: '600' }}>{order.modelo_moto}</span>
                                 <span style={{ color: '#f59e0b', fontWeight: '500', fontSize: '14px' }}>{order.estado}</span>
