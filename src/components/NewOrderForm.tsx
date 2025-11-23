@@ -32,16 +32,17 @@ const NewOrderForm: React.FC = () => {
             // We assume the table 'tickets' exists with these columns.
 
             const { error } = await supabase
-                .from('tickets')
+                .from('service_orders') // <--- Asegúrate que diga 'service_orders'
                 .insert([
                     {
+                        // Izquierda: Nombre en Base de Datos (Español)
+                        // Derecha: Tu variable en React
                         client_name: formData.clientName,
-                        moto_model: formData.motoModel,
-                        plate: formData.plate,
-                        mechanic_id: formData.mechanic || null, // Handle empty selection
-                        diagnosis: formData.diagnosis,
-                        status: 'reception', // Default status
-                        created_at: new Date()
+                        modelo_moto: formData.motoModel, // Antes era moto_model
+                        placa: formData.plate,           // Antes era plate
+                        diagnostico: formData.diagnosis, // Antes era diagnosis
+                        estado: 'recepcion',             // Antes era status
+                        mechanic_id: formData.mechanic || null
                     }
                 ]);
 
