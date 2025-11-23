@@ -1,0 +1,238 @@
+.tracker-container {
+  max-width: 480px;
+  margin: 0 auto;
+  padding: 20px;
+  min-height: 100vh;
+  background-color: #f8f9fa;
+  color: #333;
+  font-family: 'Inter', system-ui, sans-serif;
+  position: relative;
+}
+
+.tracker-header {
+  margin-bottom: 24px;
+}
+
+.tracker-header h1 {
+  font-size: 24px;
+  font-weight: 700;
+  margin: 0;
+  color: #1a1a1a;
+}
+
+.tracker-header p {
+  color: #666;
+  margin: 4px 0 0;
+  font-size: 14px;
+}
+
+/* Motorcycle Card */
+.moto-card {
+  background: white;
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  margin-bottom: 32px;
+  transition: transform 0.2s ease;
+}
+
+.moto-card:active {
+  transform: scale(0.98);
+}
+
+.moto-image-container {
+  height: 200px;
+  overflow: hidden;
+  position: relative;
+}
+
+.moto-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.moto-details {
+  padding: 16px;
+}
+
+.moto-name {
+  font-size: 18px;
+  font-weight: 700;
+  margin: 0 0 4px;
+  color: #1a1a1a;
+}
+
+.moto-plate {
+  font-size: 14px;
+  color: #666;
+  background: #f0f0f0;
+  padding: 4px 8px;
+  border-radius: 6px;
+  display: inline-block;
+  margin-bottom: 12px;
+  font-weight: 500;
+}
+
+.moto-diagnosis {
+  font-size: 14px;
+  color: #444;
+  line-height: 1.5;
+  border-top: 1px solid #eee;
+  padding-top: 12px;
+}
+
+/* Vertical Timeline */
+.timeline {
+  position: relative;
+  padding-left: 32px;
+  margin-bottom: 80px; /* Space for FAB */
+}
+
+.timeline::before {
+  content: '';
+  position: absolute;
+  left: 11px; /* Center of the 24px circle */
+  top: 12px;
+  bottom: 0;
+  width: 2px;
+  background: #e0e0e0;
+  z-index: 0;
+}
+
+.timeline-item {
+  position: relative;
+  margin-bottom: 32px;
+  opacity: 0.5;
+  transition: all 0.3s ease;
+}
+
+.timeline-item:last-child {
+  margin-bottom: 0;
+}
+
+.timeline-item.active {
+  opacity: 1;
+}
+
+.timeline-item.completed {
+  opacity: 1;
+}
+
+.timeline-marker {
+  position: absolute;
+  left: -32px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #fff;
+  border: 2px solid #ccc;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+}
+
+.timeline-item.active .timeline-marker {
+  border-color: #2563eb; /* Blue for active */
+  background: #2563eb;
+  box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.2);
+  transform: scale(1.1);
+}
+
+.timeline-item.completed .timeline-marker {
+  border-color: #10b981; /* Green for completed */
+  background: #10b981;
+}
+
+.timeline-content h3 {
+  margin: 0 0 4px;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.timeline-content p {
+  margin: 0;
+  font-size: 13px;
+  color: #666;
+}
+
+/* FAB */
+.whatsapp-fab {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  background-color: #25D366;
+  color: white;
+  border: none;
+  border-radius: 50px;
+  padding: 12px 24px;
+  font-size: 16px;
+  font-weight: 600;
+  box-shadow: 0 4px 12px rgba(37, 211, 102, 0.4);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+  z-index: 100;
+  text-decoration: none;
+}
+
+.whatsapp-fab:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(37, 211, 102, 0.5);
+}
+
+.whatsapp-fab:active {
+  transform: translateY(0);
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  .tracker-container {
+    background-color: #121212;
+    color: #e0e0e0;
+  }
+
+  .tracker-header h1 {
+    color: #ffffff;
+  }
+
+  .tracker-header p {
+    color: #a0a0a0;
+  }
+
+  .moto-card {
+    background: #1e1e1e;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+  }
+
+  .moto-name {
+    color: #ffffff;
+  }
+
+  .moto-plate {
+    background: #333;
+    color: #ccc;
+  }
+
+  .moto-diagnosis {
+    color: #aaa;
+    border-top-color: #333;
+  }
+
+  .timeline::before {
+    background: #333;
+  }
+
+  .timeline-marker {
+    background: #1e1e1e;
+    border-color: #444;
+  }
+
+  .timeline-content p {
+    color: #aaa;
+  }
+}
