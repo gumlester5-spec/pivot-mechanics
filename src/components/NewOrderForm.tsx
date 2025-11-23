@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'; // <--- Agregamos useEffect
+import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import { useNavigate } from 'react-router-dom';
 import './AdminView.css';
@@ -7,66 +7,72 @@ const NewOrderForm: React.FC = () => {
     const navigate = useNavigate();
     const [loading, setLoading] = useState(false);
 
-    // Estado para guardar la lista de mecánicos reales
+    // 1. Nueva lista para clientes
     const [mechanicsList, setMechanicsList] = useState<any[]>([]);
+    const [clientsList, setClientsList] = useState<any[]>([]);
 
     const [formData, setFormData] = useState({
-        clientName: '',
+        clientId: '', // Cambiamos clientName por clientId
         motoModel: '',
         plate: '',
         mechanic: '',
         diagnosis: ''
     });
 
-    // Al cargar la página, buscamos los mecánicos en la base de datos
     useEffect(() => {
-        const fetchMechanics = async () => {
-            const { data } = await supabase
+        const fetchData = async () => {
+            // 2. Cargar Mecánicos
+            const { data: mechanics } = await supabase
                 .from('profiles')
                 .select('id, nombre, email')
-                .eq('role', 'mecanico'); // Solo traer los que son mecánicos
+                .eq('role', 'mecanico');
 
-            if (data) {
-                setMechanicsList(data);
-            }
+            if (mechanics) setMechanicsList(mechanics);
+
+            // 3. Cargar Clientes (NUEVO)
+            const { data: clients } = await supabase
+                .from('profiles')
+                .select('id, nombre, email')
+                .eq('role', 'cliente');
+
+            if (clients) setClientsList(clients);
         };
-        fetchMechanics();
+        fetchData();
     }, []);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
         const { name, value } = e.target;
-        setFormData(prev => ({
-            ...prev,
-            [name]: value
-        }));
+        setFormData(prev => ({ ...prev, [name]: value }));
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
 
+        // Buscar el nombre del cliente seleccionado para guardarlo como texto también (opcional, pero útil para ver rápido)
+        const selectedClient = clientsList.find(c => c.id === formData.clientId);
+        const clientNameStr = selectedClient ? (selectedClient.nombre || selectedClient.email) : 'Cliente Manual';
+
         try {
             const { error } = await supabase
                 .from('service_orders')
                 .insert([
                     {
-                        client_name: formData.clientName,
+                        client_id: formData.clientId, // <--- ¡LA CLAVE! Vinculamos al usuario real
+                        client_name: clientNameStr,   // Guardamos el nombre solo por referencia visual
                         modelo_moto: formData.motoModel,
                         placa: formData.plate,
                         diagnostico: formData.diagnosis,
                         estado: 'recepcion',
-                        // Aquí enviamos el UUID real o null si no seleccionó nada
                         mechanic_id: formData.mechanic || null
                     }
                 ]);
 
             if (error) throw error;
-
             alert('Orden creada exitosamente!');
             navigate('/admin');
         } catch (error: any) {
-            console.error('Error creating order:', error);
-            alert('Error al crear la orden: ' + error.message);
+            alert('Error: ' + error.message);
         } finally {
             setLoading(false);
         }
@@ -81,11 +87,23 @@ const NewOrderForm: React.FC = () => {
 
             <div className="form-container">
                 <form onSubmit={handleSubmit}>
-                    {/* ... (Tus inputs de Cliente, Modelo y Placa quedan IGUAL) ... */}
-
+                    {/* 4. SELECT DE CLIENTES (Reemplaza al input de texto anterior) */}
                     <div className="form-group">
                         <label className="form-label">Cliente</label>
-                        <input type="text" name="clientName" className="form-input" placeholder="Nombre del cliente" value={formData.clientName} onChange={handleChange} required />
+                        <select
+                            name="clientId"
+                            className="form-select"
+                            value={formData.clientId}
+                            onChange={handleChange}
+                            required
+                        >
+                            <option value="">-- Seleccionar Cliente --</option>
+                            {clientsList.map((client) => (
+                                <option key={client.id} value={client.id}>
+                                    {client.nombre || client.email}
+                                </option>
+                            ))}
+                        </select>
                     </div>
 
                     <div className="form-group">
@@ -98,32 +116,22 @@ const NewOrderForm: React.FC = () => {
                         <input type="text" name="plate" className="form-input" placeholder="Ej. M123ABC" value={formData.plate} onChange={handleChange} required />
                     </div>
 
-                    {/* ESTE ES EL CAMBIO IMPORTANTE: SELECT DINÁMICO */}
                     <div className="form-group">
                         <label className="form-label">Asignar Mecánico</label>
-                        <select
-                            name="mechanic"
-                            className="form-select"
-                            value={formData.mechanic}
-                            onChange={handleChange}
-                        >
+                        <select name="mechanic" className="form-select" value={formData.mechanic} onChange={handleChange}>
                             <option value="">-- Sin asignar --</option>
                             {mechanicsList.map((mec) => (
-                                <option key={mec.id} value={mec.id}>
-                                    {mec.nombre || mec.email}
-                                </option>
+                                <option key={mec.id} value={mec.id}>{mec.nombre || mec.email}</option>
                             ))}
                         </select>
                     </div>
 
                     <div className="form-group">
                         <label className="form-label">Problema Reportado</label>
-                        <textarea name="diagnosis" className="form-textarea" placeholder="Describe el problema..." value={formData.diagnosis} onChange={handleChange} required />
+                        <textarea name="diagnosis" className="form-textarea" value={formData.diagnosis} onChange={handleChange} required />
                     </div>
 
-                    <button type="submit" className="submit-btn" disabled={loading}>
-                        {loading ? 'Guardando...' : 'Ingresar Moto'}
-                    </button>
+                    <button type="submit" className="submit-btn" disabled={loading}>{loading ? 'Guardando...' : 'Ingresar Moto'}</button>
                 </form>
             </div>
         </div>
