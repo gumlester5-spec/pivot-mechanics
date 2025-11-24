@@ -1,27 +1,28 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import { useNavigate } from 'react-router-dom';
+import { Phone } from 'lucide-react'; // Importamos ícono de teléfono
 import './AdminView.css';
 
 const NewOrderForm: React.FC = () => {
     const navigate = useNavigate();
     const [loading, setLoading] = useState(false);
 
-    // 1. Nueva lista para clientes
     const [mechanicsList, setMechanicsList] = useState<any[]>([]);
     const [clientsList, setClientsList] = useState<any[]>([]);
 
     const [formData, setFormData] = useState({
-        clientId: '', // Cambiamos clientName por clientId
+        clientId: '',
         motoModel: '',
         plate: '',
         mechanic: '',
-        diagnosis: ''
+        diagnosis: '',
+        phone1: '', // <--- NUEVO: Teléfono Obligatorio
+        phone2: ''  // <--- NUEVO: Teléfono Opcional
     });
 
     useEffect(() => {
         const fetchData = async () => {
-            // 2. Cargar Mecánicos
             const { data: mechanics } = await supabase
                 .from('profiles')
                 .select('id, nombre, email')
@@ -29,7 +30,6 @@ const NewOrderForm: React.FC = () => {
 
             if (mechanics) setMechanicsList(mechanics);
 
-            // 3. Cargar Clientes (NUEVO)
             const { data: clients } = await supabase
                 .from('profiles')
                 .select('id, nombre, email')
@@ -49,7 +49,6 @@ const NewOrderForm: React.FC = () => {
         e.preventDefault();
         setLoading(true);
 
-        // Buscar el nombre del cliente seleccionado para guardarlo como texto también (opcional, pero útil para ver rápido)
         const selectedClient = clientsList.find(c => c.id === formData.clientId);
         const clientNameStr = selectedClient ? (selectedClient.nombre || selectedClient.email) : 'Cliente Manual';
 
@@ -58,13 +57,15 @@ const NewOrderForm: React.FC = () => {
                 .from('service_orders')
                 .insert([
                     {
-                        client_id: formData.clientId, // <--- ¡LA CLAVE! Vinculamos al usuario real
-                        client_name: clientNameStr,   // Guardamos el nombre solo por referencia visual
+                        client_id: formData.clientId,
+                        client_name: clientNameStr,
                         modelo_moto: formData.motoModel,
                         placa: formData.plate,
                         diagnostico: formData.diagnosis,
                         estado: 'recepcion',
-                        mechanic_id: formData.mechanic || null
+                        mechanic_id: formData.mechanic || null,
+                        telefono_1: formData.phone1, // <--- GUARDAMOS TEL 1
+                        telefono_2: formData.phone2  // <--- GUARDAMOS TEL 2
                     }
                 ]);
 
@@ -87,7 +88,7 @@ const NewOrderForm: React.FC = () => {
 
             <div className="form-container">
                 <form onSubmit={handleSubmit}>
-                    {/* 4. SELECT DE CLIENTES (Reemplaza al input de texto anterior) */}
+                    {/* SELECCIÓN DE CLIENTE */}
                     <div className="form-group">
                         <label className="form-label">Cliente</label>
                         <select
@@ -105,6 +106,39 @@ const NewOrderForm: React.FC = () => {
                             ))}
                         </select>
                     </div>
+
+                    {/* --- NUEVA SECCIÓN DE CONTACTO --- */}
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                        <div className="form-group">
+                            <label className="form-label">Teléfono Principal <span style={{ color: 'red' }}>*</span></label>
+                            <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                                <Phone size={18} style={{ position: 'absolute', left: '10px', color: '#999' }} />
+                                <input
+                                    type="tel"
+                                    name="phone1"
+                                    className="form-input"
+                                    style={{ paddingLeft: '36px' }}
+                                    placeholder="5555-5555"
+                                    value={formData.phone1}
+                                    onChange={handleChange}
+                                    required // <--- OBLIGATORIO
+                                />
+                            </div>
+                        </div>
+
+                        <div className="form-group">
+                            <label className="form-label">Teléfono 2 (Opcional)</label>
+                            <input
+                                type="tel"
+                                name="phone2"
+                                className="form-input"
+                                placeholder="Casa / Trabajo"
+                                value={formData.phone2}
+                                onChange={handleChange}
+                            />
+                        </div>
+                    </div>
+                    {/* --------------------------------- */}
 
                     <div className="form-group">
                         <label className="form-label">Modelo de Moto</label>

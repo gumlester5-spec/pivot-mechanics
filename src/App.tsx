@@ -6,6 +6,7 @@ import OrderDetail from './components/OrderDetail';
 import BottomNavigation from './components/BottomNavigation';
 import Login from './components/Login'; // <--- IMPORTAR LOGIN
 import HistoryView from './components/HistoryView'; // <--- IMPORTAR HISTORIAL
+import ProfileView from './components/ProfileView'; // <--- IMPORTAR PERFIL
 import './App.css';
 
 const MainLayout = () => {
@@ -31,7 +32,7 @@ function App() {
         <Route element={<MainLayout />}>
           <Route path="/admin" element={<AdminDashboard />} />
           <Route path="/history" element={<HistoryView />} />
-          <Route path="/profile" element={<div style={{ padding: 20 }}>Perfil (Próximamente)</div>} />
+          <Route path="/profile" element={<ProfileView />} />
         </Route>
 
         <Route path="/admin/new" element={<NewOrderForm />} />

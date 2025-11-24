@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, LogOut, User } from 'lucide-react';
+import { Plus, User } from 'lucide-react';
 import { supabase } from '../lib/supabaseClient';
 import './AdminView.css';
 
@@ -105,9 +105,14 @@ const AdminDashboard: React.FC = () => {
         if (recentData) setRecentOrders(recentData);
     };
 
-    const handleLogout = async () => {
-        await supabase.auth.signOut();
-        navigate('/');
+
+
+    const getDaysInShop = (dateString: string) => {
+        const start = new Date(dateString);
+        const now = new Date();
+        const diffTime = Math.abs(now.getTime() - start.getTime());
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        return diffDays;
     };
 
     return (
@@ -126,9 +131,6 @@ const AdminDashboard: React.FC = () => {
                             <Plus size={24} />
                         </button>
                     )}
-                    <button onClick={handleLogout} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '8px' }}>
-                        <LogOut size={24} color="#666" />
-                    </button>
                 </div>
             </div>
 
@@ -288,26 +290,51 @@ const AdminDashboard: React.FC = () => {
                                     marginBottom: '12px',
                                     boxShadow: '0 2px 8px rgba(0,0,0,0.05)',
                                     cursor: 'pointer',
-                                    borderLeft: order.mechanic_id === userId ? '4px solid #2563eb' : '4px solid transparent'
+                                    borderLeft: order.mechanic_id === userId ? '4px solid #2563eb' : '4px solid transparent',
+                                    position: 'relative' // Para posicionar elementos
                                 }}
                             >
-                                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
-                                    <span style={{ fontWeight: '600' }}>{order.modelo_moto}</span>
+                                {/* Cabecera: Modelo y Estado */}
+                                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                                    <span style={{ fontWeight: '700', fontSize: '16px', color: '#1f2937' }}>
+                                        {order.modelo_moto}
+                                    </span>
                                     <span style={{
-                                        color: order.estado === 'listo' ? '#10b981' : '#f59e0b',
-                                        fontWeight: '500',
-                                        fontSize: '14px'
+                                        fontSize: '12px',
+                                        fontWeight: '600',
+                                        padding: '4px 8px',
+                                        borderRadius: '12px',
+                                        backgroundColor: order.estado === 'listo' ? '#d1fae5' : '#fef3c7',
+                                        color: order.estado === 'listo' ? '#059669' : '#d97706'
                                     }}>
-                                        {order.estado.replace('_', ' ')}
+                                        {order.estado.replace('_', ' ').toUpperCase()}
                                     </span>
                                 </div>
-                                <div style={{ fontSize: '14px', color: '#666', display: 'flex', justifyContent: 'space-between' }}>
-                                    <span>Placa: {order.placa}</span>
-                                    {userRole === 'admin' && (
-                                        <span style={{ fontSize: '12px', background: '#f3f4f6', padding: '2px 6px', borderRadius: '4px' }}>
-                                            {order.client_name}
-                                        </span>
-                                    )}
+
+                                {/* Fila 2: Placa y Cliente */}
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                                    <span style={{ fontSize: '14px', color: '#6b7280', background: '#f3f4f6', padding: '2px 6px', borderRadius: '4px' }}>
+                                        {order.placa}
+                                    </span>
+                                    <span style={{ fontSize: '13px', color: '#4b5563', fontWeight: '500' }}>
+                                        👤 {order.client_name}
+                                    </span>
+                                </div>
+
+                                {/* Fila 3: Cronómetro (La clave para el mecánico) */}
+                                <div style={{ borderTop: '1px solid #f3f4f6', paddingTop: '8px', marginTop: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                    <span style={{ fontSize: '12px', color: '#9ca3af' }}>Ingreso:</span>
+                                    {(() => {
+                                        const days = getDaysInShop(order.created_at);
+                                        // Si lleva más de 3 días, rojo. Si no, gris.
+                                        const color = days > 3 ? '#ef4444' : '#6b7280';
+                                        return (
+                                            <span style={{ fontSize: '12px', fontWeight: '600', color: color, display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                                🕒 Hace {days} {days === 1 ? 'día' : 'días'}
+                                                {days > 3 && ' (¡Atrasado!)'}
+                                            </span>
+                                        );
+                                    })()}
                                 </div>
                             </div>
                         ))

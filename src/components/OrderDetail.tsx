@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
-import { ArrowLeft, Save, CheckCircle, Wrench, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, Save, CheckCircle, Wrench, AlertTriangle, Phone, MessageCircle } from 'lucide-react';
 import './AdminView.css'; // Reusing admin styles for consistency
 
 const OrderDetail: React.FC = () => {
@@ -52,6 +52,24 @@ const OrderDetail: React.FC = () => {
         } finally {
             setUpdating(false);
         }
+    };
+
+    // Función para generar el enlace de WhatsApp
+    const getWhatsAppLink = (phone: string, clientName: string, motoModel: string) => {
+        if (!phone) return '#';
+
+        // 1. Limpiar el número (quitar guiones, espacios, paréntesis)
+        let cleanNumber = phone.replace(/\D/g, '');
+
+        // 2. Si es un número local de 8 dígitos (Guatemala), agregar el 502
+        if (cleanNumber.length === 8) {
+            cleanNumber = '502' + cleanNumber;
+        }
+
+        // 3. Crear mensaje personalizado
+        const message = `Hola ${clientName}, le escribimos de Taller Pivot sobre su moto ${motoModel}.`;
+
+        return `https://wa.me/${cleanNumber}?text=${encodeURIComponent(message)}`;
     };
 
     if (loading) return <div className="admin-container">Cargando...</div>;
@@ -133,10 +151,53 @@ const OrderDetail: React.FC = () => {
 
                 <div style={{ borderTop: '1px solid #e5e7eb', margin: '24px 0' }}></div>
 
+                {/* --- SECCIÓN DE CLIENTE Y CONTACTO --- */}
                 <div className="form-group">
                     <label className="form-label">Cliente</label>
                     <div className="form-input" style={{ background: '#f9fafb' }}>{order.client_name}</div>
                 </div>
+
+                {/* Nueva Sección de Contacto con WhatsApp */}
+                <div className="form-group">
+                    <label className="form-label">Contacto</label>
+                    <div style={{ display: 'flex', gap: '10px' }}>
+                        {/* Input visual del teléfono */}
+                        <div className="form-input" style={{ background: '#f9fafb', flex: 1, display: 'flex', alignItems: 'center', gap: '10px', color: '#374151' }}>
+                            <Phone size={18} color="#9ca3af" />
+                            <span>{order.telefono_1 || 'No registrado'}</span>
+                        </div>
+
+                        {/* Botón WhatsApp */}
+                        {order.telefono_1 && (
+                            <a
+                                href={getWhatsAppLink(order.telefono_1, order.client_name, order.modelo_moto)}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                style={{
+                                    backgroundColor: '#25D366',
+                                    color: 'white',
+                                    border: 'none',
+                                    borderRadius: '8px',
+                                    width: '50px', // Cuadrado perfecto
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    cursor: 'pointer',
+                                    boxShadow: '0 2px 5px rgba(37, 211, 102, 0.3)',
+                                    textDecoration: 'none'
+                                }}
+                            >
+                                <MessageCircle size={24} />
+                            </a>
+                        )}
+                    </div>
+                    {order.telefono_2 && (
+                        <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '4px', marginLeft: '4px' }}>
+                            Alternativo: {order.telefono_2}
+                        </div>
+                    )}
+                </div>
+                {/* ------------------------------------- */}
 
                 <div className="form-group">
                     <label className="form-label">Moto</label>

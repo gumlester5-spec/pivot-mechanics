@@ -8,20 +8,46 @@ const HistoryView: React.FC = () => {
     const navigate = useNavigate();
     const [historyOrders, setHistoryOrders] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
+    const [userRole, setUserRole] = useState<string | null>(null);
 
     useEffect(() => {
-        fetchHistory();
+        checkUser();
     }, []);
 
-    const fetchHistory = async () => {
+    // 1. Verificar quién está conectado
+    const checkUser = async () => {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+            const { data } = await supabase
+                .from('profiles')
+                .select('role')
+                .eq('id', user.id)
+                .single();
+
+            if (data) {
+                setUserRole(data.role);
+                // Pasamos el ID y el ROL a la función de carga
+                fetchHistory(user.id, data.role);
+            }
+        }
+    };
+
+    const fetchHistory = async (userId: string, role: string) => {
         try {
-            const { data, error } = await supabase
+            // 2. Construir la consulta base
+            let query = supabase
                 .from('service_orders')
                 .select('*')
-                .eq('estado', 'entregado') // SOLO entregados
-                .order('updated_at', { ascending: false });
+                .eq('estado', 'entregado') // Solo lo finalizado
+                .order('created_at', { ascending: false }); // Ordenado por fecha (la corrección que hicimos antes)
 
-            console.log('History Fetch Result:', { data, error }); // <--- DEBUG LOG
+            // 3. SI ES MECÁNICO: Filtrar solo SU trabajo
+            if (role === 'mecanico') {
+                query = query.eq('mechanic_id', userId);
+            }
+
+            const { data, error } = await query;
+
             if (error) throw error;
             if (data) setHistoryOrders(data);
         } catch (error) {
@@ -35,9 +61,12 @@ const HistoryView: React.FC = () => {
         <div className="admin-container">
             <div className="admin-header">
                 <div>
-                    <h1>Historial de Entregas</h1>
+                    {/* Título personalizado según el rol */}
+                    <h1>{userRole === 'admin' ? 'Historial Global' : 'Mis Trabajos Finalizados'}</h1>
                     <p style={{ fontSize: '14px', color: '#666' }}>
-                        Motos entregadas y finalizadas
+                        {userRole === 'admin'
+                            ? 'Todas las motos entregadas'
+                            : 'Tu registro de reparaciones completadas'}
                     </p>
                 </div>
                 <button onClick={() => navigate('/admin')} style={{ background: 'none', border: 'none', cursor: 'pointer' }}>
@@ -51,7 +80,11 @@ const HistoryView: React.FC = () => {
                 ) : historyOrders.length === 0 ? (
                     <div style={{ textAlign: 'center', padding: '40px', color: '#999' }}>
                         <Calendar size={48} style={{ marginBottom: '10px', opacity: 0.5 }} />
-                        <p>Aún no hay motos entregadas en el historial.</p>
+                        <p>
+                            {userRole === 'admin'
+                                ? 'Aún no hay motos entregadas en el sistema.'
+                                : 'Aún no has completado ninguna reparación.'}
+                        </p>
                     </div>
                 ) : (
                     historyOrders.map((order) => (
@@ -63,8 +96,7 @@ const HistoryView: React.FC = () => {
                                 padding: '16px',
                                 marginBottom: '12px',
                                 boxShadow: '0 2px 8px rgba(0,0,0,0.05)',
-                                borderLeft: '4px solid #10b981', // Verde para entregado
-                                opacity: 0.8 // Un poco más apagado para indicar historial
+                                borderLeft: '4px solid #10b981', // Verde de éxito
                             }}
                         >
                             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
@@ -83,9 +115,11 @@ const HistoryView: React.FC = () => {
                             <div style={{ fontSize: '14px', color: '#666', display: 'flex', justifyContent: 'space-between' }}>
                                 <span>Placa: {order.placa}</span>
                                 <span style={{ fontSize: '12px' }}>
-                                    {new Date(order.updated_at).toLocaleDateString()}
+                                    {new Date(order.created_at).toLocaleDateString()}
                                 </span>
                             </div>
+                            {/* Solo el Admin necesita ver el nombre del mecánico en el historial, 
+                                pero siempre es útil ver el Cliente */}
                             <div style={{ marginTop: '8px', fontSize: '13px', color: '#888', fontStyle: 'italic' }}>
                                 Cliente: {order.client_name}
                             </div>
