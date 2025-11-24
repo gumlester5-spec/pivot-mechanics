@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
-import { LogOut } from 'lucide-react';
+import { LogOut, CheckCircle } from 'lucide-react';
 import './TrackerView.css';
 import motoImage from '../assets/motorcycle.png';
 
@@ -9,7 +9,6 @@ const TrackerView: React.FC = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [order, setOrder] = useState<any>(null);
-  const [debugUserId, setDebugUserId] = useState<string | null>(null);
 
   useEffect(() => {
     fetchMyOrder();
@@ -24,19 +23,18 @@ const TrackerView: React.FC = () => {
         navigate('/'); // Si no hay usuario, mandar al login
         return;
       }
-      setDebugUserId(user.id);
 
       // 2. Buscar la orden activa más reciente de este cliente
+      // QUITAMOS el filtro .neq('estado', 'entregado') para poder mostrar la confirmación de entrega
       const { data, error } = await supabase
         .from('service_orders')
         .select('*')
-        .eq('client_id', user.id) // <--- Filtramos por SU id
-        .neq('estado', 'entregado') // Solo mostrar si no ha sido entregada (opcional)
+        .eq('client_id', user.id)
         .order('created_at', { ascending: false })
         .limit(1)
         .single();
 
-      if (error && error.code !== 'PGRST116') { // Ignoramos error si no hay datos
+      if (error && error.code !== 'PGRST116') {
         console.error('Error:', error);
       }
 
@@ -58,20 +56,19 @@ const TrackerView: React.FC = () => {
   const steps = [
     { id: 'recepcion', label: 'Recepción', desc: 'Moto en taller' },
     { id: 'reparacion', label: 'En Reparación', desc: 'Mecánico trabajando' },
-    { id: 'esperando_repuesto', label: 'Repuestos', desc: 'Esperando piezas' }, // Opcional
+    { id: 'esperando_repuesto', label: 'Repuestos', desc: 'Esperando piezas' },
     { id: 'listo', label: 'Listo', desc: 'Puede pasar a recoger' }
   ];
 
   // Lógica para saber qué pasos están completados
   const isStepActive = (stepId: string) => {
     if (!order) return false;
-    if (order.estado === stepId) return true; // Es el estado actual
+    if (order.estado === stepId) return true;
     return false;
   };
 
   const isStepCompleted = (stepId: string) => {
     if (!order) return false;
-    // Definimos un orden lógico de progreso
     const statusOrder = ['recepcion', 'esperando_repuesto', 'reparacion', 'listo', 'entregado'];
     const currentIndex = statusOrder.indexOf(order.estado);
     const stepIndex = statusOrder.indexOf(stepId);
@@ -88,16 +85,51 @@ const TrackerView: React.FC = () => {
           <button onClick={handleLogout}><LogOut size={20} /></button>
         </div>
         <p>No tienes ninguna moto en reparación actualmente.</p>
-
-        {/* DEBUG SECTION - REMOVE LATER */}
-        <div style={{ marginTop: '20px', padding: '10px', background: '#f0f0f0', borderRadius: '5px', fontSize: '12px', color: '#333' }}>
-          <p><strong>Debug Info:</strong></p>
-          <p>User ID (Auth): {debugUserId || 'No User'}</p>
-          <p>Check console for full details.</p>
-        </div>
       </header>
     </div>
   );
+
+  // VISTA ESPECIAL: MOTO ENTREGADA
+  if (order.estado === 'entregado') {
+    return (
+      <div className="tracker-container" style={{ textAlign: 'center', padding: '40px 20px' }}>
+        <header className="tracker-header">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div>
+              <h1>¡Entregada!</h1>
+              <p>Orden #{order.id}</p>
+            </div>
+            <button onClick={handleLogout} style={{ background: 'none', border: 'none', cursor: 'pointer' }}>
+              <LogOut size={24} color="#666" />
+            </button>
+          </div>
+        </header>
+
+        <div style={{ margin: '40px 0' }}>
+          <CheckCircle size={80} color="#4CAF50" style={{ marginBottom: '20px' }} />
+          <h2>¡Tu moto ha sido entregada!</h2>
+          <p style={{ color: '#666', marginTop: '10px' }}>
+            Gracias por confiar en nosotros. Esperamos que disfrutes tu viaje.
+          </p>
+
+          <div className="moto-card" style={{ marginTop: '30px', opacity: 0.8 }}>
+            <div className="moto-details">
+              <h3 className="moto-name">{order.modelo_moto}</h3>
+              <span className="moto-plate">{order.placa}</span>
+            </div>
+          </div>
+        </div>
+
+        <a
+          href={`https://wa.me/50212345678?text=Hola, tengo una consulta sobre mi servicio finalizado (Orden #${order.id})`}
+          target="_blank"
+          className="whatsapp-fab"
+        >
+          Soporte / Garantía
+        </a>
+      </div>
+    );
+  }
 
   return (
     <div className="tracker-container">
@@ -128,7 +160,6 @@ const TrackerView: React.FC = () => {
 
       <div className="timeline">
         {steps.map((step) => {
-          // Ocultar 'esperando_repuesto' si el estado actual no es ese, para limpiar la vista (opcional)
           if (step.id === 'esperando_repuesto' && order.estado !== 'esperando_repuesto') return null;
 
           const active = isStepActive(step.id);
@@ -149,7 +180,6 @@ const TrackerView: React.FC = () => {
         })}
       </div>
 
-      {/* Botón de WhatsApp dinámico con mensaje pre-llenado */}
       <a
         href={`https://wa.me/50212345678?text=Hola, consulto por mi moto placa ${order.placa}`}
         target="_blank"

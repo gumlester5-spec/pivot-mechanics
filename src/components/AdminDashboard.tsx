@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus } from 'lucide-react';
+import { Plus, LogOut } from 'lucide-react';
 import { supabase } from '../lib/supabaseClient';
 import './AdminView.css';
 
@@ -8,10 +8,24 @@ const AdminDashboard: React.FC = () => {
     const navigate = useNavigate();
     const [stats, setStats] = useState({ enTaller: 0, listos: 0 });
     const [recentOrders, setRecentOrders] = useState<any[]>([]);
+    const [userRole, setUserRole] = useState<string | null>(null);
 
     useEffect(() => {
+        checkUserRole();
         getDashboardData();
     }, []);
+
+    const checkUserRole = async () => {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+            const { data } = await supabase
+                .from('profiles')
+                .select('role')
+                .eq('id', user.id)
+                .single();
+            if (data) setUserRole(data.role);
+        }
+    };
 
     const getDashboardData = async () => {
         // 1. Contar motos en taller (estado no es 'entregado')
@@ -41,13 +55,30 @@ const AdminDashboard: React.FC = () => {
         if (data) setRecentOrders(data);
     };
 
+    const handleLogout = async () => {
+        await supabase.auth.signOut();
+        navigate('/');
+    };
+
     return (
         <div className="admin-container">
             <div className="admin-header">
-                <h1>Centro de Control</h1>
-                <button className="new-order-btn" onClick={() => navigate('/admin/new')}>
-                    <Plus size={24} />
-                </button>
+                <div>
+                    <h1>Centro de Control</h1>
+                    <p style={{ fontSize: '14px', color: '#666' }}>
+                        {userRole === 'admin' ? 'Administrador' : 'Mecánico'}
+                    </p>
+                </div>
+                <div style={{ display: 'flex', gap: '10px' }}>
+                    {userRole === 'admin' && (
+                        <button className="new-order-btn" onClick={() => navigate('/admin/new')}>
+                            <Plus size={24} />
+                        </button>
+                    )}
+                    <button onClick={handleLogout} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '8px' }}>
+                        <LogOut size={24} color="#666" />
+                    </button>
+                </div>
             </div>
 
             <div className="dashboard-summary">
