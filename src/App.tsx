@@ -5,6 +5,7 @@ import NewOrderForm from './components/NewOrderForm';
 import OrderDetail from './components/OrderDetail';
 import BottomNavigation from './components/BottomNavigation';
 import Login from './components/Login'; // <--- IMPORTAR LOGIN
+import HistoryView from './components/HistoryView'; // <--- IMPORTAR HISTORIAL
 import './App.css';
 
 const MainLayout = () => {
@@ -29,7 +30,7 @@ function App() {
         {/* 3. Rutas protegidas del Admin/Mecánico */}
         <Route element={<MainLayout />}>
           <Route path="/admin" element={<AdminDashboard />} />
-          <Route path="/history" element={<div style={{ padding: 20 }}>Historial (Próximamente)</div>} />
+          <Route path="/history" element={<HistoryView />} />
           <Route path="/profile" element={<div style={{ padding: 20 }}>Perfil (Próximamente)</div>} />
         </Route>
 

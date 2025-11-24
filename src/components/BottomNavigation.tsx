@@ -7,7 +7,7 @@ const BottomNavigation: React.FC = () => {
     return (
         <nav className="bottom-nav">
             <NavLink
-                to="/"
+                to="/admin"
                 className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}
             >
                 <Home className="nav-icon" />
