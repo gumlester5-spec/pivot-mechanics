@@ -1,12 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import { useNavigate } from 'react-router-dom';
-import { Phone } from 'lucide-react'; // Importamos ícono de teléfono
+import Notification from './Notification'; // <--- 1. Importamos la notificación
 import './AdminView.css';
 
 const NewOrderForm: React.FC = () => {
     const navigate = useNavigate();
     const [loading, setLoading] = useState(false);
+
+    // 2. Estado para la notificación
+    const [notification, setNotification] = useState<{ msg: string, type: 'success' | 'error' } | null>(null);
 
     const [mechanicsList, setMechanicsList] = useState<any[]>([]);
     const [clientsList, setClientsList] = useState<any[]>([]);
@@ -16,9 +19,7 @@ const NewOrderForm: React.FC = () => {
         motoModel: '',
         plate: '',
         mechanic: '',
-        diagnosis: '',
-        phone1: '', // <--- NUEVO: Teléfono Obligatorio
-        phone2: ''  // <--- NUEVO: Teléfono Opcional
+        diagnosis: ''
     });
 
     useEffect(() => {
@@ -63,24 +64,38 @@ const NewOrderForm: React.FC = () => {
                         placa: formData.plate,
                         diagnostico: formData.diagnosis,
                         estado: 'recepcion',
-                        mechanic_id: formData.mechanic || null,
-                        telefono_1: formData.phone1, // <--- GUARDAMOS TEL 1
-                        telefono_2: formData.phone2  // <--- GUARDAMOS TEL 2
+                        mechanic_id: formData.mechanic || null
                     }
                 ]);
 
             if (error) throw error;
-            alert('Orden creada exitosamente!');
-            navigate('/admin');
+
+            // 3. MOSTRAR NOTIFICACIÓN Y ESPERAR
+            setNotification({ msg: '¡Orden creada exitosamente!', type: 'success' });
+
+            // Esperamos 2 segundos para que el usuario lea el mensaje antes de irnos
+            setTimeout(() => {
+                navigate('/admin');
+            }, 2000);
+
         } catch (error: any) {
-            alert('Error: ' + error.message);
-        } finally {
+            // En caso de error, mostramos la notificación roja (y no navegamos)
+            setNotification({ msg: 'Error: ' + error.message, type: 'error' });
             setLoading(false);
         }
     };
 
     return (
         <div className="admin-container">
+            {/* 4. RENDERIZAR EL COMPONENTE NOTIFICATION */}
+            {notification && (
+                <Notification
+                    message={notification.msg}
+                    type={notification.type}
+                    onClose={() => setNotification(null)}
+                />
+            )}
+
             <div className="admin-header">
                 <h1>Nueva Orden</h1>
                 <button onClick={() => navigate('/admin')} style={{ background: 'none', border: 'none', fontSize: '24px', cursor: 'pointer' }}>✕</button>
@@ -88,7 +103,6 @@ const NewOrderForm: React.FC = () => {
 
             <div className="form-container">
                 <form onSubmit={handleSubmit}>
-                    {/* SELECCIÓN DE CLIENTE */}
                     <div className="form-group">
                         <label className="form-label">Cliente</label>
                         <select
@@ -106,39 +120,6 @@ const NewOrderForm: React.FC = () => {
                             ))}
                         </select>
                     </div>
-
-                    {/* --- NUEVA SECCIÓN DE CONTACTO --- */}
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                        <div className="form-group">
-                            <label className="form-label">Teléfono Principal <span style={{ color: 'red' }}>*</span></label>
-                            <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-                                <Phone size={18} style={{ position: 'absolute', left: '10px', color: '#999' }} />
-                                <input
-                                    type="tel"
-                                    name="phone1"
-                                    className="form-input"
-                                    style={{ paddingLeft: '36px' }}
-                                    placeholder="5555-5555"
-                                    value={formData.phone1}
-                                    onChange={handleChange}
-                                    required // <--- OBLIGATORIO
-                                />
-                            </div>
-                        </div>
-
-                        <div className="form-group">
-                            <label className="form-label">Teléfono 2 (Opcional)</label>
-                            <input
-                                type="tel"
-                                name="phone2"
-                                className="form-input"
-                                placeholder="Casa / Trabajo"
-                                value={formData.phone2}
-                                onChange={handleChange}
-                            />
-                        </div>
-                    </div>
-                    {/* --------------------------------- */}
 
                     <div className="form-group">
                         <label className="form-label">Modelo de Moto</label>
@@ -165,7 +146,9 @@ const NewOrderForm: React.FC = () => {
                         <textarea name="diagnosis" className="form-textarea" value={formData.diagnosis} onChange={handleChange} required />
                     </div>
 
-                    <button type="submit" className="submit-btn" disabled={loading}>{loading ? 'Guardando...' : 'Ingresar Moto'}</button>
+                    <button type="submit" className="submit-btn" disabled={loading}>
+                        {loading ? 'Guardando...' : 'Ingresar Moto'}
+                    </button>
                 </form>
             </div>
         </div>

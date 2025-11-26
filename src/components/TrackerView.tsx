@@ -134,6 +134,39 @@ const TrackerView: React.FC = () => {
         </div>
       </div>
 
+      {/* --- INICIO DE LA TARJETA DE PAGO --- */}
+      {(order.costo_repuestos > 0 || order.costo_mano_obra > 0) && (
+        <div style={{
+          background: 'white',
+          borderRadius: '16px',
+          padding: '20px',
+          marginBottom: '32px',
+          boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
+          border: '1px solid #e5e7eb'
+        }}>
+          <h3 style={{ margin: '0 0 16px 0', fontSize: '16px', color: '#374151', borderBottom: '1px solid #eee', paddingBottom: '8px' }}>
+            Resumen de Costos
+          </h3>
+
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '14px', color: '#666' }}>
+            <span>Repuestos</span>
+            <span>Q. {order.costo_repuestos?.toFixed(2)}</span>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px', fontSize: '14px', color: '#666' }}>
+            <span>Mano de Obra</span>
+            <span>Q. {order.costo_mano_obra?.toFixed(2)}</span>
+          </div>
+
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '2px dashed #eee', paddingTop: '16px' }}>
+            <span style={{ fontWeight: 'bold', color: '#111827' }}>Total a Pagar</span>
+            <span style={{ fontWeight: 'bold', fontSize: '24px', color: '#2563eb' }}>
+              Q. {((order.costo_repuestos || 0) + (order.costo_mano_obra || 0)).toFixed(2)}
+            </span>
+          </div>
+        </div>
+      )}
+      {/* --- FIN DE LA TARJETA DE PAGO --- */}
+
       <div className="timeline">
         {steps.map((step) => {
           // Ocultar 'esperando_repuesto' si no es el estado actual (para simplificar)
