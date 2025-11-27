@@ -1,14 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import { useNavigate } from 'react-router-dom';
-import Notification from './Notification'; // <--- 1. Importamos la notificación
+import Notification from './Notification';
+import { Phone } from 'lucide-react'; // Importamos el ícono
 import './AdminView.css';
 
 const NewOrderForm: React.FC = () => {
     const navigate = useNavigate();
     const [loading, setLoading] = useState(false);
-
-    // 2. Estado para la notificación
     const [notification, setNotification] = useState<{ msg: string, type: 'success' | 'error' } | null>(null);
 
     const [mechanicsList, setMechanicsList] = useState<any[]>([]);
@@ -19,7 +18,9 @@ const NewOrderForm: React.FC = () => {
         motoModel: '',
         plate: '',
         mechanic: '',
-        diagnosis: ''
+        diagnosis: '',
+        phone1: '', // <--- RECUPERADO
+        phone2: ''  // <--- RECUPERADO
     });
 
     useEffect(() => {
@@ -28,14 +29,12 @@ const NewOrderForm: React.FC = () => {
                 .from('profiles')
                 .select('id, nombre, email')
                 .eq('role', 'mecanico');
-
             if (mechanics) setMechanicsList(mechanics);
 
             const { data: clients } = await supabase
                 .from('profiles')
                 .select('id, nombre, email')
                 .eq('role', 'cliente');
-
             if (clients) setClientsList(clients);
         };
         fetchData();
@@ -64,22 +63,18 @@ const NewOrderForm: React.FC = () => {
                         placa: formData.plate,
                         diagnostico: formData.diagnosis,
                         estado: 'recepcion',
-                        mechanic_id: formData.mechanic || null
+                        mechanic_id: formData.mechanic || null,
+                        telefono_1: formData.phone1, // <--- ENVIANDO A DB
+                        telefono_2: formData.phone2
                     }
                 ]);
 
             if (error) throw error;
 
-            // 3. MOSTRAR NOTIFICACIÓN Y ESPERAR
             setNotification({ msg: '¡Orden creada exitosamente!', type: 'success' });
-
-            // Esperamos 2 segundos para que el usuario lea el mensaje antes de irnos
-            setTimeout(() => {
-                navigate('/admin');
-            }, 2000);
+            setTimeout(() => { navigate('/admin'); }, 2000);
 
         } catch (error: any) {
-            // En caso de error, mostramos la notificación roja (y no navegamos)
             setNotification({ msg: 'Error: ' + error.message, type: 'error' });
             setLoading(false);
         }
@@ -87,14 +82,7 @@ const NewOrderForm: React.FC = () => {
 
     return (
         <div className="admin-container">
-            {/* 4. RENDERIZAR EL COMPONENTE NOTIFICATION */}
-            {notification && (
-                <Notification
-                    message={notification.msg}
-                    type={notification.type}
-                    onClose={() => setNotification(null)}
-                />
-            )}
+            {notification && <Notification message={notification.msg} type={notification.type} onClose={() => setNotification(null)} />}
 
             <div className="admin-header">
                 <h1>Nueva Orden</h1>
@@ -105,30 +93,54 @@ const NewOrderForm: React.FC = () => {
                 <form onSubmit={handleSubmit}>
                     <div className="form-group">
                         <label className="form-label">Cliente</label>
-                        <select
-                            name="clientId"
-                            className="form-select"
-                            value={formData.clientId}
-                            onChange={handleChange}
-                            required
-                        >
+                        <select name="clientId" className="form-select" value={formData.clientId} onChange={handleChange} required>
                             <option value="">-- Seleccionar Cliente --</option>
                             {clientsList.map((client) => (
-                                <option key={client.id} value={client.id}>
-                                    {client.nombre || client.email}
-                                </option>
+                                <option key={client.id} value={client.id}>{client.nombre || client.email}</option>
                             ))}
                         </select>
                     </div>
 
+                    {/* --- SECCIÓN TELÉFONOS RECUPERADA --- */}
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                        <div className="form-group">
+                            <label className="form-label">Teléfono Principal <span style={{ color: 'red' }}>*</span></label>
+                            <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                                <Phone size={18} style={{ position: 'absolute', left: '10px', color: '#999' }} />
+                                <input
+                                    type="tel"
+                                    name="phone1"
+                                    className="form-input"
+                                    style={{ paddingLeft: '36px' }}
+                                    placeholder="5555-5555"
+                                    value={formData.phone1}
+                                    onChange={handleChange}
+                                    required
+                                />
+                            </div>
+                        </div>
+                        <div className="form-group">
+                            <label className="form-label">Teléfono 2 (Opcional)</label>
+                            <input
+                                type="tel"
+                                name="phone2"
+                                className="form-input"
+                                placeholder="Casa / Trabajo"
+                                value={formData.phone2}
+                                onChange={handleChange}
+                            />
+                        </div>
+                    </div>
+                    {/* ------------------------------------ */}
+
                     <div className="form-group">
                         <label className="form-label">Modelo de Moto</label>
-                        <input type="text" name="motoModel" className="form-input" placeholder="Ej. Honda CGL 125" value={formData.motoModel} onChange={handleChange} required />
+                        <input type="text" name="motoModel" className="form-input" value={formData.motoModel} onChange={handleChange} required />
                     </div>
 
                     <div className="form-group">
                         <label className="form-label">Placa</label>
-                        <input type="text" name="plate" className="form-input" placeholder="Ej. M123ABC" value={formData.plate} onChange={handleChange} required />
+                        <input type="text" name="plate" className="form-input" value={formData.plate} onChange={handleChange} required />
                     </div>
 
                     <div className="form-group">
@@ -146,9 +158,7 @@ const NewOrderForm: React.FC = () => {
                         <textarea name="diagnosis" className="form-textarea" value={formData.diagnosis} onChange={handleChange} required />
                     </div>
 
-                    <button type="submit" className="submit-btn" disabled={loading}>
-                        {loading ? 'Guardando...' : 'Ingresar Moto'}
-                    </button>
+                    <button type="submit" className="submit-btn" disabled={loading}>{loading ? 'Guardando...' : 'Ingresar Moto'}</button>
                 </form>
             </div>
         </div>

@@ -4,7 +4,7 @@ import { supabase } from '../lib/supabaseClient';
 import {
     ArrowLeft, Save, CheckCircle, Wrench, AlertTriangle,
     Phone, MessageCircle, DollarSign, Plus, Trash2, Edit2,
-    Clock, User, Calendar
+    Clock, User, Calendar, Lock // Icono de candado
 } from 'lucide-react';
 import Notification from './Notification';
 import './AdminView.css';
@@ -49,10 +49,11 @@ const OrderDetail: React.FC = () => {
             setPartsList(data.repuestos_detalle || []);
 
             // Decidir si mostrar modo edición
-            if (data.costo_mano_obra > 0 || (data.repuestos_detalle && data.repuestos_detalle.length > 0)) {
-                setIsEditingCosts(false);
-            } else {
+            // Solo permitimos editar costos si NO está entregado
+            if (data.estado !== 'entregado' && (data.costo_mano_obra === 0 && (!data.repuestos_detalle || data.repuestos_detalle.length === 0))) {
                 setIsEditingCosts(true);
+            } else {
+                setIsEditingCosts(false);
             }
 
             // Buscar nombre del mecánico si existe
@@ -71,6 +72,10 @@ const OrderDetail: React.FC = () => {
             setLoading(false);
         }
     };
+
+    // --- CALCULAMOS SI ES MODO LECTURA ---
+    // Si ya está entregado, se bloquea todo.
+    const isReadOnly = order?.estado === 'entregado';
 
     // --- FUNCIONES DE COSTOS (Igual que antes) ---
     const addPart = () => {
@@ -98,6 +103,7 @@ const OrderDetail: React.FC = () => {
     };
 
     const saveCosts = async () => {
+        if (isReadOnly) return; // Seguridad extra
         setUpdating(true);
         const totalRepuestos = calculatePartsTotal();
         const manoObra = parseFloat(laborCost) || 0;
@@ -124,6 +130,7 @@ const OrderDetail: React.FC = () => {
 
     // --- NUEVA LÓGICA DE ESTADO CON HISTORIAL ---
     const updateStatus = async (newStatus: string) => {
+        if (isReadOnly) return; // No permitir cambios si es historial
         if (order.estado === newStatus) return; // No hacer nada si es el mismo
         setUpdating(true);
 
@@ -196,27 +203,51 @@ const OrderDetail: React.FC = () => {
                     </button>
                     <h1>Orden #{order.id}</h1>
                 </div>
+                {/* AVISO DE SOLO LECTURA */}
+                {isReadOnly && (
+                    <div style={{ background: '#dcfce7', color: '#166534', padding: '4px 12px', borderRadius: '20px', fontSize: '12px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        <Lock size={14} /> FINALIZADA
+                    </div>
+                )}
             </div>
 
             <div className="form-container">
 
                 {/* BOTONES DE ESTADO (Igual que antes) */}
-                <div className="form-group">
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                        <button className={`submit-btn ${order.estado === 'reparacion' ? 'active-status' : 'inactive-status'}`} style={{ background: '#f59e0b' }} onClick={() => updateStatus('reparacion')}>
-                            <Wrench size={18} style={{ marginRight: '8px' }} /> Reparación
-                        </button>
-                        <button className={`submit-btn ${order.estado === 'esperando_repuesto' ? 'active-status' : 'inactive-status'}`} style={{ background: '#ef4444' }} onClick={() => updateStatus('esperando_repuesto')}>
-                            <AlertTriangle size={18} style={{ marginRight: '8px' }} /> Repuesto
-                        </button>
-                        <button className={`submit-btn ${order.estado === 'listo' ? 'active-status' : 'inactive-status'}`} style={{ background: '#10b981' }} onClick={() => updateStatus('listo')}>
-                            <CheckCircle size={18} style={{ marginRight: '8px' }} /> Listo
-                        </button>
-                        <button className={`submit-btn ${order.estado === 'entregado' ? 'active-status' : 'inactive-status'}`} style={{ background: '#3b82f6' }} onClick={() => updateStatus('entregado')}>
-                            <Save size={18} style={{ marginRight: '8px' }} /> Entregado
-                        </button>
+                {/* SECCIÓN DE ESTADO - OCULTA SI ES HISTORIAL */}
+                {!isReadOnly ? (
+                    <div className="form-group">
+                        <label className="form-label">Estado del Servicio</label>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                            {['reparacion', 'esperando_repuesto', 'listo', 'entregado'].map(status => (
+                                <button
+                                    key={status}
+                                    className={`submit-btn ${order.estado === status ? 'active-status' : 'inactive-status'}`}
+                                    style={{
+                                        background: status === 'reparacion' ? '#f59e0b' :
+                                            status === 'esperando_repuesto' ? '#ef4444' :
+                                                status === 'listo' ? '#10b981' : '#3b82f6',
+                                        color: 'white'
+                                    }}
+                                    onClick={() => updateStatus(status)}
+                                >
+                                    {status === 'reparacion' && <Wrench size={18} style={{ marginRight: '8px' }} />}
+                                    {status === 'esperando_repuesto' && <AlertTriangle size={18} style={{ marginRight: '8px' }} />}
+                                    {status === 'listo' && <CheckCircle size={18} style={{ marginRight: '8px' }} />}
+                                    {status === 'entregado' && <Save size={18} style={{ marginRight: '8px' }} />}
+                                    {status.replace('_', ' ')}
+                                </button>
+                            ))}
+                        </div>
                     </div>
-                </div>
+                ) : (
+                    // VERSIÓN ESTÁTICA DEL ESTADO
+                    <div style={{ textAlign: 'center', padding: '20px', background: '#f9fafb', borderRadius: '12px', marginBottom: '20px' }}>
+                        <CheckCircle size={48} color="#10b981" style={{ marginBottom: '8px' }} />
+                        <h2 style={{ margin: 0, color: '#10b981' }}>Orden Entregada</h2>
+                        <p style={{ color: '#666', fontSize: '14px' }}>Esta orden está finalizada y archivada.</p>
+                    </div>
+                )}
 
                 <div style={{ borderTop: '1px solid #e5e7eb', margin: '24px 0' }}></div>
 
@@ -233,7 +264,7 @@ const OrderDetail: React.FC = () => {
                             <DollarSign size={20} color={!isEditingCosts ? '#10b981' : '#2563eb'} />
                             <h3 style={{ margin: 0, color: '#374151' }}>Cotización</h3>
                         </div>
-                        {!isEditingCosts && (
+                        {!isEditingCosts && !isReadOnly && (
                             <button
                                 onClick={() => setIsEditingCosts(true)}
                                 style={{ background: 'none', border: 'none', color: '#2563eb', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', fontWeight: '600' }}
@@ -332,6 +363,32 @@ const OrderDetail: React.FC = () => {
 
 
                 <div style={{ borderTop: '1px solid #e5e7eb', margin: '24px 0' }}></div>
+
+                {/* Info Cliente y Contacto */}
+                <div className="form-group">
+                    <label className="form-label">Cliente</label>
+                    <div className="form-input" style={{ background: '#f9fafb' }}>{order.client_name}</div>
+                </div>
+
+                <div className="form-group">
+                    <label className="form-label">Contacto</label>
+                    <div style={{ display: 'flex', gap: '10px' }}>
+                        <div className="form-input" style={{ background: '#f9fafb', flex: 1, display: 'flex', alignItems: 'center', gap: '10px' }}>
+                            <Phone size={18} color="#9ca3af" />
+                            <span>{order.telefono_1 || 'No registrado'}</span>
+                        </div>
+                        {order.telefono_1 && (
+                            <a href={getWhatsAppLink(order.telefono_1)} target="_blank" className="whatsapp-fab" style={{ position: 'static', width: '50px', borderRadius: '8px', boxShadow: 'none' }}>
+                                <MessageCircle size={24} />
+                            </a>
+                        )}
+                    </div>
+                </div>
+
+                <div className="form-group">
+                    <label className="form-label">Moto</label>
+                    <div className="form-input" style={{ background: '#f9fafb' }}>{order.modelo_moto} - {order.placa}</div>
+                </div>
 
                 {/* INFORMACIÓN DETALLADA */}
                 <div style={{ display: 'grid', gap: '16px' }}>

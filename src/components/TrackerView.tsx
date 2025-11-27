@@ -11,39 +11,88 @@ const TrackerView: React.FC = () => {
   const [order, setOrder] = useState<any>(null);
 
   useEffect(() => {
-    fetchMyActiveOrder();
+    let subscription: any;
+
+    const init = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+
+        if (!user) {
+          navigate('/');
+          return;
+        }
+
+        // 1. Cargar orden inicial
+        await fetchMyActiveOrder(user.id);
+
+        // 2. Suscribirse a cambios en tiempo real
+        subscription = supabase
+          .channel('public:service_orders')
+          .on(
+            'postgres_changes',
+            {
+              event: '*',
+              schema: 'public',
+              table: 'service_orders',
+              filter: `client_id=eq.${user.id}`,
+            },
+            (payload) => {
+              console.log('Cambio en tiempo real:', payload);
+              handleRealtimeUpdate(payload);
+            }
+          )
+          .subscribe();
+
+      } catch (error) {
+        console.error('Error initializing:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    init();
+
+    return () => {
+      if (subscription) supabase.removeChannel(subscription);
+    };
   }, []);
 
-  const fetchMyActiveOrder = async () => {
+  const fetchMyActiveOrder = async (userId: string) => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-
-      if (!user) {
-        navigate('/');
-        return;
-      }
-
-      // LÓGICA MEJORADA:
-      // Buscamos PRIMERO si hay alguna orden que NO esté entregada todavía.
-      // Así priorizamos lo que está pasando AHORA.
       const { data, error } = await supabase
         .from('service_orders')
         .select('*')
-        .eq('client_id', user.id)
-        .neq('estado', 'entregado') // Solo traemos las activas
+        .eq('client_id', userId)
+        .neq('estado', 'entregado')
         .order('created_at', { ascending: false })
         .limit(1)
         .single();
 
       if (data) {
         setOrder(data);
+      } else {
+        setOrder(null);
       }
-      // (Si no hay activas, order se queda en null y mostramos la pantalla de inicio limpia)
-
     } catch (error) {
-      console.error('Error fetching:', error);
-    } finally {
-      setLoading(false);
+      console.error('Error fetching order:', error);
+    }
+  };
+
+  const handleRealtimeUpdate = (payload: any) => {
+    if (payload.eventType === 'INSERT') {
+      // Si se crea una nueva orden y no está entregada, la mostramos
+      if (payload.new.estado !== 'entregado') {
+        setOrder(payload.new);
+      }
+    } else if (payload.eventType === 'UPDATE') {
+      // Si la orden actual se actualiza
+      if (payload.new.estado === 'entregado') {
+        // Si se entregó, limpiamos la vista (mostramos "Todo en orden")
+        setOrder(null);
+      } else {
+        // Si cambió de estado (ej: recepcion -> reparacion), actualizamos
+        setOrder(payload.new);
+      }
     }
   };
 
@@ -112,7 +161,11 @@ const TrackerView: React.FC = () => {
       <header className="tracker-header">
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>
-            <h1>Tu Moto</h1>
+            {order.estado === 'listo' ? (
+              <h1 style={{ color: '#059669' }}>¡Tu Moto está Lista!</h1>
+            ) : (
+              <h1>Tu Moto</h1>
+            )}
             <p style={{ fontSize: '14px', color: '#6b7280' }}>Orden #{order.id}</p>
           </div>
           <button onClick={handleLogout} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#6b7280' }}>
